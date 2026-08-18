@@ -5,6 +5,7 @@ import '../screens/home/home_screen.dart';
 import '../screens/logs/logs_screen.dart';
 import '../models/student.dart';
 import '../screens/settings/settings_screen.dart';
+import '../screens/contact/contact_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
@@ -32,6 +33,10 @@ final GoRouter appRouter = GoRouter(
           students: (extra?['students'] as List<Student>?) ?? const [],
         );
       },
+    ),
+    GoRoute(
+      path: '/contact',
+      builder: (context, state) => const ContactScreen(),
     ),
   ],
 ); // GoRouter

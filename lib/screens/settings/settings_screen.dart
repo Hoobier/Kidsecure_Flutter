@@ -6,6 +6,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_texts_styles.dart';
 import '../../core/constants/services/auth_service.dart';
 import '../../models/student.dart';
+import '../../core/constants/services/api_service.dart';
 
 /// Parent-facing settings: profile info, linked children, notification
 /// preference, password change, and app version. Kept intentionally simple —
@@ -56,9 +57,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _toggleNotifications(bool value) async {
+    final previous = _notificationsEnabled;
     setState(() => _notificationsEnabled = value);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_notificationsPrefKey, value);
+
+    try {
+      final confirmed = await ApiService.instance.updateNotifications(value);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_notificationsPrefKey, confirmed);
+      if (mounted) setState(() => _notificationsEnabled = confirmed);
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() => _notificationsEnabled = previous);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _notificationsEnabled = previous);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Couldn't update notification settings. Please try again.",
+            ),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _handleChangePassword() async {

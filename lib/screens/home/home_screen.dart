@@ -5,6 +5,7 @@ import '../../core/constants/services/auth_service.dart';
 import '../../core/constants/services/firestore_service.dart';
 import '../../widgets/app_drawer.dart';
 import 'widgets/status_cards_section.dart';
+import '../../core/constants/services/api_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -41,16 +42,25 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     try {
-      final profile = await _firestoreService.getParentProfile(uid);
-      final ids = await _firestoreService.getLinkedStudentIds(uid);
+      final response = await ApiService.instance.getMe();
+      final profile = response['data'] as Map<String, dynamic>? ?? {};
+      final childrenJson = (profile['children'] as List<dynamic>? ?? []);
+      final ids = childrenJson
+          .map((c) => (c as Map<String, dynamic>)['studentId'] as String)
+          .toList();
 
       setState(() {
-        _parentName = profile?['fullName'] as String? ?? '';
-        _parentEmail = profile?['email'] as String? ?? uid;
+        _parentName = (profile['fullName'] as String?) ?? '';
+        _parentEmail = (profile['email'] as String?) ?? uid;
         _studentIds = ids;
         _loading = false;
       });
-    } catch (e) {
+    } on ApiException catch (e) {
+      setState(() {
+        _error = e.message;
+        _loading = false;
+      });
+    } catch (_) {
       setState(() {
         _error = 'Unable to load your account. Please try again.';
         _loading = false;
@@ -79,11 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
         );
         break;
       case DrawerDestination.contactSchool:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Contact School screen is coming soon.'),
-          ),
-        );
+        context.push('/contact');
         break;
       case DrawerDestination.logout:
         _handleLogout();
