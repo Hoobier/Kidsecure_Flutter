@@ -1,0 +1,22 @@
+{
+  "rules": {
+    ".read": true,
+    ".write": false,
+    "students": {
+      ".read": true,
+      ".write": false
+    },
+    "entryExitLogs": {
+      ".read": true,
+      ".write": false
+    },
+    "parents": {
+      ".read": true,
+      ".write": false
+    },
+    "schoolInfo": {
+      ".read": true,
+      ".write": false
+    }
+  }
+}
