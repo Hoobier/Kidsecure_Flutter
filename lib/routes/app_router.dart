@@ -6,12 +6,19 @@ import '../screens/logs/logs_screen.dart';
 import '../models/student.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/contact/contact_screen.dart';
+import '../screens/auth/forgot_password_screen.dart';
+
+// lib/routes/app_router.dart
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
   routes: [
     GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+    GoRoute(
+      path: '/forgot-password',
+      builder: (context, state) => const ForgotPasswordScreen(),
+    ),
     GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
     GoRoute(
       path: '/logs',

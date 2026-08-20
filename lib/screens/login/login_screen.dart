@@ -5,6 +5,8 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_texts_styles.dart';
 import '../../core/constants/services/auth_service.dart';
 
+// lib/screens/login/login_screen.dart
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -71,34 +73,6 @@ class _LoginScreenState extends State<LoginScreen> {
         return 'This account has been disabled. Contact the school admin.';
       default:
         return 'Login failed. Please try again.';
-    }
-  }
-
-  Future<void> _handleForgotPassword() async {
-    if (_emailController.text.trim().isEmpty) {
-      setState(() {
-        _errorMessage =
-            'Enter your email above first, then tap "Forgot Password."';
-      });
-      return;
-    }
-
-    try {
-      await _authService.sendPasswordResetEmail(_emailController.text);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Password reset link sent to your email.',
-            style: AppTextStyles.body.copyWith(color: Colors.white),
-          ),
-          backgroundColor: AppColors.primary,
-        ),
-      );
-    } on FirebaseAuthException catch (e) {
-      setState(() {
-        _errorMessage = _mapAuthError(e.code);
-      });
     }
   }
 
@@ -200,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                      onPressed: _handleForgotPassword,
+                      onPressed: () => context.push('/forgot-password'),
                       child: Text(
                         'Forgot Password?',
                         style: AppTextStyles.bodySecondary.copyWith(
