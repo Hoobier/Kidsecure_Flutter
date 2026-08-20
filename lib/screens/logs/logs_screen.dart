@@ -6,6 +6,8 @@ import '../../core/constants/services/utils/date_formatter.dart';
 import '../../models/scan_log.dart';
 import '../../models/student.dart';
 
+// lib/screens/logs/logs_screen.dart
+
 /// Parent-facing, chronological entry/exit log grouped by day so it's
 /// easy to scan at a glance.
 class LogsScreen extends StatefulWidget {

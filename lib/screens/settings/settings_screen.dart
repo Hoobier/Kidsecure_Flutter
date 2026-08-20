@@ -8,6 +8,8 @@ import '../../core/constants/services/auth_service.dart';
 import '../../models/student.dart';
 import '../../core/constants/services/api_service.dart';
 
+// lib/screens/settings/settings_screen.dart
+
 /// Parent-facing settings: profile info, linked children, notification
 /// preference, password change, and app version. Kept intentionally simple —
 /// enrollment and child records stay admin-managed, so nothing here is

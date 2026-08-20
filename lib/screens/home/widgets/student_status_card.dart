@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../models/student.dart';
 
+// lib/screens/home/widgets/student_status_card.dart
+
 /// A single card showing one child's live RFID entry/exit status.
 class StudentStatusCard extends StatelessWidget {
   final Student student;

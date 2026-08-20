@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../models/student.dart';
 import 'student_status_card.dart';
 
+// lib/screens/home/widgets/status_cards_section.dart
+
 /// - 1 child  -> a single full-width card.
 /// - 2+ children -> a swipeable carousel with dot indicators.
 class StatusCardsSection extends StatefulWidget {

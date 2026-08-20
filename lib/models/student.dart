@@ -3,6 +3,8 @@
 /// through the Laravel backend on Railway.
 enum ScanStatus { in_, out_ }
 
+// lib/models/student.dart
+
 class Student {
   final String id; // Mongo document _id / RTDB node key
   final String fullName;

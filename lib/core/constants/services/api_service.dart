@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 
+// lib/core/constants/services/api_service.dart
+
 /// Thrown for any non-2xx response from the Laravel API. `message` is
 /// already the friendly, user-facing string from the backend
 /// (e.g. "Your session has expired. Please log in again.") — safe to

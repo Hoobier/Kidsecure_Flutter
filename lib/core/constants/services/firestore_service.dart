@@ -2,6 +2,8 @@ import 'package:firebase_database/firebase_database.dart';
 import '../../../models/student.dart';
 import '../../../models/scan_log.dart';
 
+// lib/core/constants/services/firestore_service.dart
+
 /// Reads student status and entry/exit history from Firebase Realtime Database.
 class FirestoreService {
   final DatabaseReference _db = FirebaseDatabase.instance.ref();
