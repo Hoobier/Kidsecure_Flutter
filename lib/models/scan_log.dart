@@ -1,5 +1,7 @@
 import 'student.dart';
 
+// lib/models/scan_log.dart
+
 /// Represents a single RFID entry/exit event for a student, synced to
 /// Firebase Realtime Database from the admin portal's Laravel + MongoDB backend.
 class ScanLog {

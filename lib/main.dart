@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'firebase_options.dart';
 import 'routes/app_router.dart';
 import 'core/constants/app_colors.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +20,17 @@ void main() async {
       rethrow;
     }
   }
+
+  final messaging = FirebaseMessaging.instance;
+  final settings = await messaging.requestPermission(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
+  debugPrint('FCM permission status: ${settings.authorizationStatus}');
+
+  final token = await messaging.getToken();
+  debugPrint('FCM TOKEN: $token');
 
   final databaseUrl = DefaultFirebaseOptions.currentPlatform.databaseURL;
   if (databaseUrl != null && databaseUrl.isNotEmpty) {
