@@ -4,8 +4,12 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants/services/auth_service.dart';
 import '../../core/constants/services/firestore_service.dart';
 import '../../widgets/app_drawer.dart';
-import 'widgets/status_cards_section.dart';
+import 'widgets/student_status_card.dart';
 import '../../core/constants/services/api_service.dart';
+import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_texts_styles.dart';
+import '../../core/constants/services/utils/date_formatter.dart';
+import '../../models/scan_log.dart';
 
 // lib/screens/home/home_screen.dart
 
@@ -19,18 +23,26 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   final AuthService _authService = AuthService();
+  final PageController _pageController = PageController(viewportFraction: 0.92);
 
   bool _loading = true;
   String? _error;
   List<String> _studentIds = [];
-  List<Student> _children = []; // kept in sync for drawer navigation
+  List<Student> _children = [];
   String _parentName = '';
   String _parentEmail = '';
+  int _currentIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _loadParentAndStudents();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadParentAndStudents() async {
@@ -73,12 +85,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void _handleDrawerSelection(DrawerDestination destination) {
     switch (destination) {
       case DrawerDestination.status:
-        break; // already on the status screen
-      case DrawerDestination.logs:
-        context.push(
-          '/logs',
-          extra: {'students': _children, 'initialStudentId': null},
-        );
         break;
       case DrawerDestination.settings:
         context.push(
@@ -126,7 +132,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('KidSecure')),
+      appBar: AppBar(
+        title: const Text('KidSecure'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+      ),
       drawer: AppDrawer(
         parentName: _parentName,
         parentEmail: _parentEmail,
@@ -174,31 +184,280 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         final students = snapshot.data ?? [];
-        _children = students; // keep for drawer navigation
+        _children = students;
 
-        return ListView(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+        if (students.isEmpty) {
+          return const Center(child: Text('No linked students found.'));
+        }
+
+        // Get current student
+        final currentStudent =
+            students[_currentIndex.clamp(0, students.length - 1)];
+        final currentStudentId = currentStudent.id;
+
+        return Column(
           children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'Attendance Status',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            // "Attendance Status" Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Attendance Status',
+                  style: AppTextStyles.heading2.copyWith(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
+            // Swipeable Status Cards
+            _buildStatusCards(students),
+            const SizedBox(height: 8),
+            // Student indicator (name + dots)
+            _buildStudentIndicator(students),
             const SizedBox(height: 12),
-            StatusCardsSection(
-              students: students,
-              onCardTap: (student) {
-                context.push(
-                  '/logs',
-                  extra: {'students': students, 'initialStudentId': student.id},
-                );
-              },
-            ),
+            // Logs header
+            _buildLogsHeader(),
+            // Logs for current student
+            Expanded(child: _buildLogsList(currentStudentId)),
           ],
         );
       },
     );
   }
+
+  Widget _buildStatusCards(List<Student> students) {
+    if (students.length == 1) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: StudentStatusCard(student: students.first, onTap: null),
+      );
+    }
+
+    return SizedBox(
+      height: 130,
+      child: PageView.builder(
+        controller: _pageController,
+        itemCount: students.length,
+        onPageChanged: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        itemBuilder: (context, index) {
+          final student = students[index];
+          return StudentStatusCard(student: student, onTap: null);
+        },
+      ),
+    );
+  }
+
+  Widget _buildStudentIndicator(List<Student> students) {
+    if (students.length <= 1) return const SizedBox.shrink();
+
+    final currentStudent = students[_currentIndex];
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        ...List.generate(students.length, (i) {
+          final active = i == _currentIndex;
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            margin: const EdgeInsets.symmetric(horizontal: 3),
+            width: active ? 18 : 7,
+            height: 7,
+            decoration: BoxDecoration(
+              color: active ? AppColors.primary : Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          );
+        }),
+        const SizedBox(width: 12),
+        Text(
+          currentStudent.fullName,
+          style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLogsHeader() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'Entry & Exit Logs',
+            style: AppTextStyles.heading2.copyWith(fontSize: 18),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLogsList(String studentId) {
+    return StreamBuilder<List<ScanLog>>(
+      stream: _firestoreService.streamLogs(studentId, limit: 100),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'Unable to load logs right now.',
+                style: AppTextStyles.body,
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }
+
+        final logs = snapshot.data ?? [];
+        if (logs.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.history_rounded,
+                  size: 48,
+                  color: AppColors.textSecondary,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'No entry or exit records yet.',
+                  style: AppTextStyles.bodySecondary,
+                ),
+              ],
+            ),
+          );
+        }
+
+        final grouped = _groupByDay(logs);
+
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          itemCount: grouped.length,
+          itemBuilder: (context, index) {
+            final entry = grouped[index];
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                  child: Text(
+                    entry.dayLabel,
+                    style: AppTextStyles.bodySecondary.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                ...entry.logs.map((log) => _LogTile(log: log)),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  List<_DayGroup> _groupByDay(List<ScanLog> logs) {
+    final map = <String, List<ScanLog>>{};
+    for (final log in logs) {
+      map
+          .putIfAbsent(DateFormatter.formatDayLabel(log.timestamp), () => [])
+          .add(log);
+    }
+    return map.entries
+        .map((e) => _DayGroup(dayLabel: e.key, logs: e.value))
+        .toList();
+  }
+}
+
+// Log tile widget
+class _LogTile extends StatelessWidget {
+  final ScanLog log;
+
+  const _LogTile({required this.log});
+
+  @override
+  Widget build(BuildContext context) {
+    final isIn = log.status == ScanStatus.in_;
+    final color = isIn ? AppColors.statusIn : AppColors.statusOut;
+    final icon = isIn ? Icons.login_rounded : Icons.logout_rounded;
+    final label = isIn ? 'Entered school' : 'Left school';
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: AppTextStyles.body.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  DateFormatter.formatTime(log.timestamp),
+                  style: AppTextStyles.caption,
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              isIn ? 'IN' : 'OUT',
+              style: AppTextStyles.caption.copyWith(
+                color: color,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DayGroup {
+  final String dayLabel;
+  final List<ScanLog> logs;
+  _DayGroup({required this.dayLabel, required this.logs});
 }

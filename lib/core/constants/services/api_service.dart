@@ -32,7 +32,7 @@ class ApiService {
   /// the emulator itself, not your dev machine running `php artisan serve`.
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:8000/api',
+    defaultValue: 'https://kidsecure-backend.onrender.com/api',
   );
 
   Future<String> _authHeader() async {
