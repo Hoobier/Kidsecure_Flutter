@@ -7,6 +7,7 @@ import '../../core/constants/app_texts_styles.dart';
 import '../../core/constants/services/auth_service.dart';
 import '../../models/student.dart';
 import '../../core/constants/services/api_service.dart';
+import 'dart:async';
 
 // lib/screens/settings/settings_screen.dart
 
@@ -37,12 +38,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
   bool _loadingPref = true;
   String _appVersion = '';
+  bool _isChangePasswordCooldown = false;
+  int _cooldownSeconds = 60;
+  Timer? _cooldownTimer;
 
   @override
   void initState() {
     super.initState();
     _loadNotificationPref();
     _loadAppVersion();
+  }
+
+  @override
+  void dispose() {
+    _cooldownTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startCooldown() {
+    setState(() {
+      _isChangePasswordCooldown = true;
+      _cooldownSeconds = 60;
+    });
+
+    _cooldownTimer?.cancel();
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        if (_cooldownSeconds <= 1) {
+          _isChangePasswordCooldown = false;
+          timer.cancel();
+        } else {
+          _cooldownSeconds--;
+        }
+      });
+    });
   }
 
   Future<void> _loadNotificationPref() async {
@@ -120,6 +153,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             content: Text('Password reset link sent. Check your email.'),
           ),
         );
+        _startCooldown();
       }
     } catch (_) {
       if (mounted) {
@@ -230,7 +264,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       style: AppTextStyles.caption,
                     ),
                     value: _notificationsEnabled,
-                    activeColor: AppColors.primary,
+                    activeThumbColor: AppColors.primary,
                     onChanged: _toggleNotifications,
                   ),
           ),
@@ -241,8 +275,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 _ActionRow(
                   icon: Icons.lock_reset_rounded,
-                  label: 'Change Password',
-                  onTap: _handleChangePassword,
+                  label: _isChangePasswordCooldown
+                      ? 'Wait ${_cooldownSeconds}s'
+                      : 'Change Password',
+                  onTap: _isChangePasswordCooldown
+                      ? null
+                      : _handleChangePassword,
+                  labelColor: _isChangePasswordCooldown
+                      ? AppColors.textSecondary
+                      : null,
+                  iconColor: _isChangePasswordCooldown
+                      ? AppColors.textSecondary
+                      : null,
                 ),
                 const Divider(height: 20),
                 _ActionRow(
@@ -286,7 +330,7 @@ class _SectionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -348,7 +392,7 @@ class _InfoRow extends StatelessWidget {
 class _ActionRow extends StatelessWidget {
   final IconData icon;
   final String label;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final Color? labelColor;
   final Color? iconColor;
 

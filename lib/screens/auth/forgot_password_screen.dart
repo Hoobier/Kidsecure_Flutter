@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_texts_styles.dart';
 import '../../core/constants/services/auth_service.dart';
+import 'dart:async';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -20,11 +21,33 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   bool _isLoading = false;
   bool _linkSent = false;
   String? _errorMessage;
+  bool _isCooldown = false;
+  int _cooldownSeconds = 60;
+  Timer? _cooldownTimer;
 
   @override
   void dispose() {
     _emailController.dispose();
     super.dispose();
+  }
+
+  void _startCooldown() {
+    setState(() {
+      _isCooldown = true;
+      _cooldownSeconds = 60;
+    });
+
+    _cooldownTimer?.cancel();
+    _cooldownTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      setState(() {
+        if (_cooldownSeconds <= 1) {
+          _isCooldown = false;
+          timer.cancel();
+        } else {
+          _cooldownSeconds--;
+        }
+      });
+    });
   }
 
   Future<void> _handleSendResetLink() async {
@@ -41,6 +64,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       setState(() {
         _linkSent = true;
       });
+      // ADD THIS LINE:
+      _startCooldown(); // Starts the 60 second cooldown
     } on FirebaseAuthException catch (e) {
       setState(() {
         _errorMessage = _mapAuthError(e.code);
@@ -146,7 +171,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           SizedBox(
             height: 52,
             child: ElevatedButton(
-              onPressed: _isLoading ? null : _handleSendResetLink,
+              onPressed: (_isLoading || _isCooldown)
+                  ? null
+                  : _handleSendResetLink,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 shape: RoundedRectangleBorder(
@@ -162,7 +189,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         strokeWidth: 2.5,
                       ),
                     )
-                  : Text('Send Reset Link', style: AppTextStyles.button),
+                  : Text(
+                      _isCooldown
+                          ? 'Wait ${_cooldownSeconds}s'
+                          : 'Send Reset Link',
+                      style: AppTextStyles.button,
+                    ),
             ),
           ),
         ],
