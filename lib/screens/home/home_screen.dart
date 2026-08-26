@@ -10,6 +10,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_texts_styles.dart';
 import '../../core/constants/services/utils/date_formatter.dart';
 import '../../models/scan_log.dart';
+import '../../core/constants/services/notification_service.dart';
 
 // lib/screens/home/home_screen.dart
 
@@ -69,6 +70,8 @@ class _HomeScreenState extends State<HomeScreen> {
         _studentIds = ids;
         _loading = false;
       });
+
+      NotificationService.instance.initialize();
     } on ApiException catch (e) {
       setState(() {
         _error = e.message;
@@ -125,6 +128,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     if (confirmed != true) return;
 
+    NotificationService.instance.reset();
     await _authService.logout();
     if (mounted) context.go('/login');
   }

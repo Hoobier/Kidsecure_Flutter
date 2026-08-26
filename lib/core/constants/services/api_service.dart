@@ -118,4 +118,18 @@ class ApiService {
     final data = _decode(response);
     return data['notificationsEnabled'] as bool? ?? enabled;
   }
+
+  Future<void> updateFcmToken(String token) async {
+    final auth = await _authHeader();
+    final response = await http.post(
+      Uri.parse('$baseUrl/app/parent/fcm-token'),
+      headers: {
+        'Authorization': auth,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'fcmToken': token}),
+    );
+    _decode(response);
+  }
 }
