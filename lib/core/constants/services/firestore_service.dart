@@ -1,6 +1,7 @@
 import 'package:firebase_database/firebase_database.dart';
 import '../../../models/student.dart';
 import '../../../models/scan_log.dart';
+import '../../../models/report_card.dart';
 
 // lib/core/constants/services/firestore_service.dart
 
@@ -138,6 +139,81 @@ class FirestoreService {
 
       logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       return logs.take(limit).toList();
+    });
+  }
+
+  /// Streams the parent-facing report card data for one student.
+  /// Emits null when nothing is released yet (no meta node present).
+  Stream<ReportCardData?> streamReportCard(String studentId) {
+    return _students.child(studentId).onValue.map((event) {
+      final root = _asStringMap(event.snapshot.value);
+      if (root == null || root.isEmpty) return null;
+
+      final card = _asStringMap(root['reportCard']);
+      final meta = _asStringMap(root['reportCardMeta']);
+      final obs = _asStringMap(root['observedValues']);
+
+      // No meta node means nothing has been released for this student.
+      if (meta == null || card == null) return null;
+
+      final term = (meta['term'] as String?) ?? '';
+      final displayOrder =
+          (meta['displayOrder'] as List?)?.map((e) => e.toString()).toList() ??
+          [];
+      final subjectNames = _asStringMap(meta['subjectNames']) ?? {};
+
+      final subjects = <ReportCardSubject>[];
+      for (final code in displayOrder) {
+        final entry = _asStringMap(card[code]);
+        final termEntry = _asStringMap(entry?[term]);
+        final rawGrade = termEntry?['grade'];
+        final grade = rawGrade?.toString();
+
+        subjects.add(
+          ReportCardSubject(
+            code: code,
+            name: (subjectNames[code] as String?) ?? code,
+            grade: (grade == null || grade.isEmpty) ? null : grade,
+            computed: termEntry?['computed'] == true,
+          ),
+        );
+      }
+
+      final observedLabels = _asStringMap(meta['observedValueLabels']) ?? {};
+      final ratingLabels = _asStringMap(meta['ratingLabels']) ?? {};
+      final termValues = obs != null ? _asStringMap(obs[term]) : null;
+
+      final observedValues = <ObservedValueRow>[];
+      for (final entry in observedLabels.entries) {
+        final code = entry.key;
+        final label = entry.value.toString();
+        final ratingCode = termValues?[code]?.toString();
+        final ratingLabel = ratingCode != null
+            ? (ratingLabels[ratingCode] as String?) ?? ratingCode
+            : null;
+
+        observedValues.add(
+          ObservedValueRow(
+            code: code,
+            label: label,
+            ratingCode: ratingCode,
+            ratingLabel: ratingLabel,
+          ),
+        );
+      }
+
+      final releasedMs = meta['releasedAt'];
+      final releasedAt = releasedMs is int
+          ? DateTime.fromMillisecondsSinceEpoch(releasedMs)
+          : null;
+
+      return ReportCardData(
+        schoolYear: meta['schoolYear'] as String?,
+        term: term,
+        releasedAt: releasedAt,
+        subjects: subjects,
+        observedValues: observedValues,
+      );
     });
   }
 }

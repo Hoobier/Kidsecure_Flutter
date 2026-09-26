@@ -89,6 +89,9 @@ class _HomeScreenState extends State<HomeScreen> {
     switch (destination) {
       case DrawerDestination.status:
         break;
+      case DrawerDestination.reportCard:
+        context.push('/report-card', extra: {'studentIds': _studentIds});
+        break;
       case DrawerDestination.settings:
         context.push(
           '/settings',

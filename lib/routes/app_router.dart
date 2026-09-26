@@ -6,6 +6,7 @@ import '../models/student.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/contact/contact_screen.dart';
 import '../screens/auth/forgot_password_screen.dart';
+import '../screens/report_card/report_card_screen.dart';
 
 // lib/routes/app_router.dart
 
@@ -28,6 +29,15 @@ final GoRouter appRouter = GoRouter(
           parentName: extra?['parentName'] as String? ?? 'Parent',
           parentEmail: extra?['parentEmail'] as String?,
           students: (extra?['students'] as List<Student>?) ?? const [],
+        );
+      },
+    ),
+    GoRoute(
+      path: '/report-card',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        return ReportCardScreen(
+          studentIds: (extra?['studentIds'] as List<String>?) ?? const [],
         );
       },
     ),

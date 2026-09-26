@@ -37,6 +37,11 @@ class AppDrawer extends StatelessWidget {
               label: 'Status',
               onTap: () => onSelect(DrawerDestination.status),
             ),
+            _DrawerItem(
+              icon: Icons.assessment_rounded,
+              label: 'Report Card',
+              onTap: () => onSelect(DrawerDestination.reportCard),
+            ),
 
             _DrawerItem(
               icon: Icons.settings_rounded,
@@ -62,7 +67,7 @@ class AppDrawer extends StatelessWidget {
   }
 }
 
-enum DrawerDestination { status, settings, contactSchool, logout }
+enum DrawerDestination { status, reportCard, settings, contactSchool, logout }
 
 class _DrawerItem extends StatelessWidget {
   final IconData icon;
