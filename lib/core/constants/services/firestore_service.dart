@@ -183,10 +183,21 @@ class FirestoreService {
       final ratingLabels = _asStringMap(meta['ratingLabels']) ?? {};
       final termValues = obs != null ? _asStringMap(obs[term]) : null;
 
+      // Iterate the explicit order array when present (avoids RTDB's unordered
+      // map iteration). Fall back to labels.entries for cards that predate the
+      // order key — renders in the old order rather than showing nothing.
+      final observedOrder =
+          (meta['observedValueOrder'] as List?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [];
+      final orderedCodes = observedOrder.isNotEmpty
+          ? observedOrder
+          : observedLabels.keys.toList();
+
       final observedValues = <ObservedValueRow>[];
-      for (final entry in observedLabels.entries) {
-        final code = entry.key;
-        final label = entry.value.toString();
+      for (final code in orderedCodes) {
+        final label = observedLabels[code]?.toString() ?? code;
         final ratingCode = termValues?[code]?.toString();
         final ratingLabel = ratingCode != null
             ? (ratingLabels[ratingCode] as String?) ?? ratingCode
